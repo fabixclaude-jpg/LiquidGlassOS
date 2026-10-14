@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Liquid Glass for Android</title>
+<meta name="description" content="A free iOS-style liquid glass launcher, lock screen and control center for Android and XOS.">
+<style>
+:root{
+  --ink:#fff;
+  --ink-2:rgba(255,255,255,.72);
+  --glass:rgba(255,255,255,.14);
+  --glass-strong:rgba(255,255,255,.22);
+  --rim:rgba(255,255,255,.55);
+  --blue:#0a84ff;
+  --radius:28px;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter","Helvetica Neue",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font);color:var(--ink);min-height:100vh;
+  background:#0b1f4b;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+/* wallpaper blobs (blurred, so every glass panel has something to refract) */
+.wall{position:fixed;inset:0;z-index:-1;background:linear-gradient(160deg,#0b1f4b,#3a1c71 70%)}
+.wall i{position:absolute;border-radius:50%;filter:blur(70px);opacity:.9}
+.wall i:nth-child(1){width:60vmax;height:60vmax;left:-15vmax;top:-10vmax;background:#2bd9c5}
+.wall i:nth-child(2){width:55vmax;height:55vmax;right:-18vmax;top:25vh;background:#7b5cff}
+.wall i:nth-child(3){width:50vmax;height:50vmax;left:10vw;bottom:-25vmax;background:#4aa3ff}
+
+.glass{
+  background:var(--glass);
+  -webkit-backdrop-filter:blur(28px) saturate(170%);
+  backdrop-filter:blur(28px) saturate(170%);
+  border-radius:var(--radius);
+  position:relative;
+  box-shadow:0 10px 40px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.35);
+}
+/* specular rim: bright top-left and bottom-right, like the real thing */
+.glass::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;padding:1.2px;pointer-events:none;
+  background:linear-gradient(135deg,rgba(255,255,255,.85),rgba(255,255,255,.08) 38%,rgba(255,255,255,.08) 62%,rgba(255,255,255,.6));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+}
+
+nav{
+  position:sticky;top:14px;z-index:10;margin:14px auto 0;width:min(920px,calc(100% - 32px));
+  display:flex;align-items:center;justify-content:space-between;padding:10px 12px 10px 22px;border-radius:999px;
+}
+nav b{font-weight:600;letter-spacing:.2px}
+nav a.btn{padding:9px 18px;font-size:14px}
+
+.btn{
+  display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-weight:600;
+  padding:16px 30px;border-radius:999px;font-size:17px;border:0;cursor:pointer;
+  background:linear-gradient(180deg,rgba(255,255,255,.34),rgba(255,255,255,.14));
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+  box-shadow:0 8px 30px rgba(10,132,255,.35), inset 0 1px 0 rgba(255,255,255,.6);
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.btn:hover{transform:translateY(-2px) scale(1.02)}
+.btn.primary{background:linear-gradient(180deg,#3d9bff,#0a6cf0)}
+
+main{width:min(1100px,calc(100% - 32px));margin:0 auto}
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;padding:70px 0 40px}
+.hero h1{font-size:clamp(40px,6vw,72px);line-height:1.02;letter-spacing:-1.5px;font-weight:700}
+.hero p{margin:22px 0 34px;font-size:clamp(17px,2vw,21px);line-height:1.5;color:var(--ink-2);max-width:34em}
+.cta{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.meta{font-size:13.5px;color:var(--ink-2);margin-top:16px}
+
+/* ---------- phones ---------- */
+.phones{position:relative;height:640px}
+.phone{
+  position:absolute;width:290px;height:600px;border-radius:46px;padding:10px;
+  background:rgba(255,255,255,.08);box-shadow:0 30px 80px rgba(0,0,0,.45), inset 0 0 0 1.5px rgba(255,255,255,.35);
+}
+.phone.a{left:2%;top:20px;transform:rotate(-5deg)}
+.phone.b{right:0;top:60px;transform:rotate(4deg)}
+.screen{position:relative;width:100%;height:100%;border-radius:38px;overflow:hidden;background:#222}
+.screen .bg{position:absolute;inset:0;background:
+  radial-gradient(circle at 20% 20%,#2bd9c5cc,transparent 55%),
+  radial-gradient(circle at 90% 50%,#7b5cffcc,transparent 55%),
+  radial-gradient(circle at 30% 90%,#4aa3ffcc,transparent 60%),
+  linear-gradient(160deg,#0b1f4b,#3a1c71)}
+.screen.snow .bg{background:linear-gradient(180deg,#cfd9e6,#8ea1b8 55%,#4a3a30)}
+.status{position:absolute;top:14px;left:0;right:0;text-align:center;font-size:13px;font-weight:600}
+.date{position:absolute;top:104px;width:100%;text-align:center;font-size:15px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.3)}
+/* the liquid glass clock: tall condensed digits, see-through, with a bright rim */
+.clock{
+  position:absolute;top:122px;width:100%;text-align:center;
+  font-family:"Barlow Condensed","Oswald","Arial Narrow",var(--font);font-stretch:condensed;font-weight:700;
+  font-size:112px;line-height:1;transform:scaleY(1.35);transform-origin:top;letter-spacing:-4px;white-space:nowrap;
+  color:rgba(255,255,255,.28);
+  -webkit-text-stroke:2px rgba(255,255,255,.85);
+  text-shadow:0 0 28px rgba(255,255,255,.45), 0 10px 30px rgba(0,0,0,.25);
+}
+.card{position:absolute;left:14px;right:14px;padding:12px 14px;font-size:12.5px;border-radius:20px}
+.card small{display:block;opacity:.7;font-size:10.5px;letter-spacing:.06em;margin-bottom:2px}
+.card.c1{top:420px}.card.c2{top:486px}
+.homebar{position:absolute;bottom:8px;left:50%;width:120px;height:5px;margin-left:-60px;border-radius:3px;background:rgba(255,255,255,.9)}
+
+/* control center mock */
+.cc{position:absolute;inset:56px 14px 14px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;grid-template-rows:96px 96px 52px 52px;gap:10px}
+.cc .t{border-radius:24px;display:grid;place-items:center;font-size:12px;font-weight:600}
+.cc .conn{grid-column:1/3;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px}
+.cc .conn span{border-radius:50%;display:grid;place-items:center;background:rgba(128,128,128,.45);font-size:15px}
+.cc .conn span.on{background:#0a84ff}.cc .conn span.g{background:#30d158}.cc .conn span.o{background:#ff9f0a}
+.cc .media{grid-column:3/5}
+.cc .s{grid-row:span 2;position:relative;overflow:hidden}
+.cc .s u{position:absolute;left:0;right:0;bottom:0;background:rgba(255,255,255,.92);text-decoration:none}
+.cc .wide{grid-column:1/3}
+
+.dock{position:absolute;left:12px;right:12px;bottom:26px;height:74px;border-radius:30px;display:flex;justify-content:space-around;align-items:center;padding:0 8px}
+.ico{width:50px;height:50px;border-radius:12px;position:relative;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.18));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8), inset 0 0 0 1px rgba(255,255,255,.25)}
+
+/* ---------- sections ---------- */
+section{padding:56px 0}
+h2{font-size:clamp(30px,4vw,46px);letter-spacing:-1px;margin-bottom:12px}
+.lead{color:var(--ink-2);font-size:18px;line-height:1.5;max-width:40em;margin-bottom:30px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+.feat{padding:26px}
+.feat h3{font-size:20px;margin:10px 0 8px}
+.feat p{color:var(--ink-2);line-height:1.5;font-size:15.5px}
+.badge{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;
+  background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,.15));box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
+
+.steps{counter-reset:s;display:grid;gap:14px}
+.step{padding:20px 24px 20px 74px;position:relative;line-height:1.5}
+.step::before{counter-increment:s;content:counter(s);position:absolute;left:20px;top:50%;transform:translateY(-50%);
+  width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:700;
+  background:linear-gradient(180deg,#3d9bff,#0a6cf0)}
+.step b{display:block;font-size:17px}
+.step span{color:var(--ink-2);font-size:15px}
+.note{padding:24px 28px;line-height:1.55;color:var(--ink-2)}
+.note b{color:#fff}
+footer{text-align:center;color:var(--ink-2);font-size:14px;padding:40px 0 60px}
+
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;padding-top:40px}
+  .phones{height:560px}
+  .phone{transform:none!important;width:250px;height:520px}
+  .phone.a{left:0}.phone.b{right:0;top:40px}
+  .clock{font-size:98px;top:104px}
+  .date{top:88px}
+  .card.c1{top:360px}.card.c2{top:420px}
+}
+@media (max-width:560px){
+  .phone.b{display:none}.phone.a{left:50%;margin-left:-125px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .phone.a{animation:float 7s ease-in-out infinite}
+  .phone.b{animation:float 8s ease-in-out -2s infinite}
+  @keyframes float{50%{translate:0 -10px}}
+}
+</style>
+</head>
+<body>
+<div class="wall"><i></i><i></i><i></i></div>
+
+<nav class="glass">
+  <b>Liquid Glass</b>
+  <a class="btn primary" href="LiquidGlass.apk" download>Download</a>
+</nav>
+
+<main>
+  <div class="hero">
+    <div>
+      <h1>Your Android,<br>in liquid glass.</h1>
+      <p>A free iOS-style home screen, lock screen and control center for Android and XOS. Frosted glass dock, a tall glass clock you can move down the screen, glass notifications, widgets, wallpapers and themes.</p>
+      <div class="cta">
+        <a class="btn primary" href="LiquidGlass.apk" download>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg>
+          Download the APK
+        </a>
+        <a class="btn" href="#install">How to install</a>
+      </div>
+      <p class="meta">Free · Android 5.0 and up · works with every XOS version · no account, no ads</p>
+    </div>
+
+    <div class="phones" aria-hidden="true">
+      <div class="phone glass a">
+        <div class="screen snow">
+          <div class="bg"></div>
+          <div class="status">Mon 29 &nbsp; 4:36 PM</div>
+          <div class="date">Monday, October 12</div>
+          <div class="clock">1:36</div>
+          <div class="card glass c1"><small>MESSAGES</small>Mom — Dinner at 7?</div>
+          <div class="card glass c2"><small>CALENDAR</small>Design review in 1 hour</div>
+          <div class="homebar"></div>
+        </div>
+      </div>
+      <div class="phone glass b">
+        <div class="screen">
+          <div class="bg"></div>
+          <div class="cc">
+            <div class="t glass conn"><span class="o">✈</span><span class="g">▂▄▆</span><span class="on">≋</span><span class="on">ᛒ</span></div>
+            <div class="t glass media">♪ Music</div>
+            <div class="t glass">⟳</div><div class="t glass">▭</div>
+            <div class="t glass s"><u style="height:62%"></u></div>
+            <div class="t glass s"><u style="height:40%"></u></div>
+            <div class="t glass wide">☾ Focus</div>
+            <div class="t glass">🔦</div><div class="t glass">⏱</div><div class="t glass">▦</div><div class="t glass">◉</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <h2>Everything glass.</h2>
+    <p class="lead">Every panel blurs what is behind it, from the dock to the notification cards, with the bright rim and soft sheen of the real thing.</p>
+    <div class="grid">
+      <div class="glass feat"><div class="badge">⌂</div><h3>Home screen and dock</h3><p>Frosted glass dock with pinned apps, glass app icons, pages, search and long-press menus.</p></div>
+      <div class="glass feat"><div class="badge">🔒</div><h3>Glass lock screen</h3><p>A big see-through glass clock you can restyle and move down the screen, with notification cards, flashlight and camera.</p></div>
+      <div class="glass feat"><div class="badge">☰</div><h3>Control center</h3><p>Swipe down on the right for connectivity, brightness, volume, flashlight and more, over a blurred view of your app.</p></div>
+      <div class="glass feat"><div class="badge">🔔</div><h3>Notification center</h3><p>Swipe down on the left for notifications as glass cards, with a one-tap clear.</p></div>
+      <div class="glass feat"><div class="badge">▦</div><h3>Widgets</h3><p>Clock, calendar and battery widgets on the home screen.</p></div>
+      <div class="glass feat"><div class="badge">🎨</div><h3>Wallpapers and themes</h3><p>Six built-in wallpapers or your own photo, light or dark glass, and a frost slider.</p></div>
+    </div>
+  </section>
+
+  <section id="install">
+    <h2>Install in a few minutes.</h2>
+    <p class="lead">Android asks for a few permissions because it does not let apps replace the lock screen or control center outright. Liquid Glass sits on top of them instead.</p>
+    <div class="steps">
+      <div class="glass step"><b>Download and open the APK</b><span>Allow "install from this source" for your browser when Android asks.</span></div>
+      <div class="glass step"><b>Press Home and choose Liquid Glass</b><span>Pick "Always" so it becomes your home screen.</span></div>
+      <div class="glass step"><b>Open Glass Settings and tick the set-up list</b><span>Display over other apps, Accessibility (control center), Notification access and Change system settings.</span></div>
+      <div class="glass step"><b>Switch on the glass lock screen</b><span>Then tap "Edit lock screen" to pick your font, colour and clock position.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="glass note">
+      <b>Good to know.</b> Liquid Glass is a launcher plus overlays, not a new operating system, so it cannot remove your phone's own lock screen or control center. It covers them. Your PIN or fingerprint still protects the phone, and swiping up on the glass lock screen brings up the normal unlock. Notification and settings access stays on your phone. Nothing is uploaded anywhere.
+    </div>
+  </section>
+</main>
+
+<footer>Liquid Glass · free and open · not affiliated with Apple or Transsion</footer>
+</body>
+</html>

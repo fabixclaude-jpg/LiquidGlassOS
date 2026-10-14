@@ -1,0 +1,62 @@
+name: Build APK and publish website
+
+# Every push builds the .apk and publishes the download website (with the .apk inside it) to GitHub Pages.
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+
+      # Debug builds are signed with the standard debug key, so the file installs on any phone right away.
+      - name: Build APK
+        run: gradle --no-daemon assembleDebug
+
+      - name: Put APK into the website
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk website/LiquidGlass.apk
+          ls -l website
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LiquidGlass-apk
+          path: website/LiquidGlass.apk
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
