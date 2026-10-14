@@ -23,6 +23,9 @@ Plain Android framework code, no third-party libraries, `minSdk 21` (Android 5.0
 5. Your download site is at `https://<your-username>.github.io/<repository-name>/`, and the APK is
    `.../LiquidGlass.apk` on that site. The APK is also attached to the workflow run as an artifact.
 
+This copy is already published that way: **<https://fabixclaude-jpg.github.io/LiquidGlassOS/>**
+(the APK downloads from `.../LiquidGlassOS/LiquidGlass.apk`).
+
 Or build locally with Android Studio: open this folder and run **Build > Build APK(s)**.
 
 ## How the replacement works
@@ -44,4 +47,5 @@ Android does not let an ordinary app delete the stock lock screen or control cen
   Allow auto-start and turn off battery optimisation for Liquid Glass if the lock screen does not appear.
 * Toggling Wi-Fi, Bluetooth, mobile data and airplane mode directly is blocked for normal apps on modern Android,
   so those buttons open the system panel for that setting. Brightness, volume, flashlight and rotation work in place.
-* Not compiled or run on a device yet. Please test and report any crashes.
+* Not run on a real phone yet. It does build cleanly (Gradle 8.9, AGP 8.5.2, JDK 17, compileSdk 34,
+  minSdk 21) both on GitHub Actions and locally. Please test and report any crashes.
